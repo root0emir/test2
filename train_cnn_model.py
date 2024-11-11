@@ -10,6 +10,11 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
 from tensorflow.keras.utils import to_categorical 
+from tensorflow.keras.models import load_model
+import os
+
+if os.path.exists('./cnn_attack_model.h5'):
+    cnn_model = load_model('./cnn_attack_model.h5')
 
 # Veri seti yükleme
 def load_and_preprocess_data(filepath):
