@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from scapy.all import sniff, IP, TCP, UDP
-from tensorflow.keras.models import load_model 
+from tensorflow.keras.models import load_model
 import joblib
 import numpy as np
 import logging
@@ -10,6 +10,10 @@ from datetime import datetime
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List
 import os
+from dotenv import load_dotenv
+
+# Çevre değişkenlerini yükleme (API_TOKEN ve MONGO_URI)
+load_dotenv()
 
 # Uygulama başlatma
 app = FastAPI()
@@ -18,14 +22,24 @@ app = FastAPI()
 security = HTTPBearer()
 
 # MongoDB bağlantısı
-client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017/"))
-db = client["network_logs"]
-collection = db["logs"]
+try:
+    client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017/"))
+    db = client["network_logs"]
+    collection = db["logs"]
+    logging.info("MongoDB bağlantısı başarılı")
+except Exception as e:
+    logging.error(f"MongoDB bağlantı hatası: {e}")
+    raise HTTPException(status_code=500, detail="MongoDB bağlantısı sağlanamadı")
 
 # Eğitimli modellerin yüklenmesi
-cnn_model = load_model('cnn_attack_model.h5')  # CNN modeli
-rf_model = joblib.load('random_forest_attack_model.pkl')  # Random Forest modeli
-scaler = joblib.load('scaler.pkl')  # Ölçekleme nesnesi
+try:
+    cnn_model = load_model('cnn_attack_model.h5')  # CNN modeli
+    rf_model = joblib.load('random_forest_attack_model.pkl')  # Random Forest modeli
+    scaler = joblib.load('scaler.pkl')  # Ölçekleme nesnesi
+    logging.info("Modeller başarıyla yüklendi")
+except Exception as e:
+    logging.error(f"Model yükleme hatası: {e}")
+    raise HTTPException(status_code=500, detail="Modeller yüklenemedi")
 
 # Loglama sistemi
 logging.basicConfig(level=logging.INFO)
@@ -43,8 +57,8 @@ def extract_features(packet):
         features = np.array([[packet_size, protocol]])  # Özellikler
         return features, src_ip, dst_ip, timestamp
     except Exception as e:
-        logging.error(f"Hata oluştu: {str(e)}")
-        raise HTTPException(status_code=500, detail="Paket analizinde hata")
+        logging.error(f"Paket analizinde hata: {str(e)}")
+        raise HTTPException(status_code=500, detail="Paket analizinde hata oluştu")
 
 # CNN ile saldırı türünü tahmin etme
 def cnn_predict_attack(features):
