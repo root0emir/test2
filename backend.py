@@ -31,6 +31,19 @@ except Exception as e:
     logging.error(f"MongoDB bağlantı hatası: {e}")
     raise HTTPException(status_code=500, detail="MongoDB bağlantısı sağlanamadı")
 
+# Model dosya yolları
+model_paths = {
+    'cnn_model': 'cnn_attack_model.h5',
+    'rf_model': 'random_forest_attack_model.pkl',
+    'scaler': 'scaler.pkl'
+}
+
+# Dosya yollarını kontrol etme
+for model_name, model_path in model_paths.items():
+    if not os.path.exists(model_path):
+        logging.error(f"{model_name} dosyası bulunamadı: {model_path}")
+        raise HTTPException(status_code=500, detail=f"{model_name} dosyası yüklenemedi")
+
 # Eğitimli modellerin yüklenmesi
 try:
     cnn_model = load_model('cnn_attack_model.h5')  # CNN modeli
@@ -39,10 +52,10 @@ try:
     logging.info("Modeller başarıyla yüklendi")
 except Exception as e:
     logging.error(f"Model yükleme hatası: {e}")
-    raise HTTPException(status_code=500, detail="Modeller yüklenemedi")
+    raise HTTPException(status_code=500, detail=f"Model yükleme hatası: {str(e)}")
 
 # Loglama sistemi
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # Paket analiz ve özellik çıkarımı
 def extract_features(packet):
